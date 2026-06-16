@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.idea/
+
+# Node
+node_modules/
