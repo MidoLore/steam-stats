@@ -29,7 +29,7 @@ def setup_database():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS tags (
-            id   INTEGER PRIMARY KEY AUTOINCREMENT,
+            id   INTEGER PRIMARY KEY,
             name TEXT UNIQUE
         )
     ''')
