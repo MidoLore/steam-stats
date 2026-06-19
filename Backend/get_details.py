@@ -41,7 +41,9 @@ def save_game(game_data):
             developer = ?,
             publisher = ?,
             positive_reviews = ?,
-            negative_reviews = ?
+            negative_reviews = ?,
+            total_reviews = ?,
+            review_score_desc = ?
         WHERE steam_id = ?
     ''', (
         game_data['short_description'],
@@ -52,6 +54,8 @@ def save_game(game_data):
         game_data['publisher'],
         game_data['positive_reviews'],
         game_data['negative_reviews'],
+        game_data['total_reviews'],
+        game_data['review_score_desc'],
         game_data['app_id'],
     ))
 
@@ -117,7 +121,12 @@ def fetch_game_details(game, current_index, total_games):
 
 def fetch_reviews(app_id, game_name, current_index, total_games):
     try:
-        response = requests.get(f"{REVIEWS_URL}/{app_id}", params={'json': 1}, timeout=10)
+        response = requests.get(f"{REVIEWS_URL}/{app_id}", params={
+            'json': 1,
+            'num_per_page': 0,
+            'language': 'all',
+            'purchase_type': 'all'
+        }, timeout=10)
 
         if response.status_code == 429:
             print(f"[{current_index}/{total_games}] TOO MANY REQUESTS - stopping")
@@ -134,6 +143,8 @@ def fetch_reviews(app_id, game_name, current_index, total_games):
         return {
             'positive_reviews': summary.get('total_positive', 0),
             'negative_reviews': summary.get('total_negative', 0),
+            'total_reviews': summary.get('total_reviews', 0),
+            'review_score_desc': summary.get('review_score_desc', ''),
         }
 
     except requests.exceptions.RequestException as e:
@@ -142,7 +153,8 @@ def fetch_reviews(app_id, game_name, current_index, total_games):
 
 
 def scrape_tags(app_id, game_name, current_index, total_games):
-    url = f"https://store.steampowered.com/app/{app_id}/{game_name}/"
+    clean_name = re.sub(r'[^a-zA-Z0-9_]', '_', game_name)
+    url = f"https://store.steampowered.com/app/{app_id}/{clean_name}/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     cookies = {
         'birthtime': '0',
@@ -161,13 +173,13 @@ def scrape_tags(app_id, game_name, current_index, total_games):
         print(f"[{current_index}/{total_games}] ✗ {game_name} (tag error: {e})")
         return []
 
-
 if __name__ == "__main__":
     games = get_unprocessed_games()
     total = len(games)
     print(f"Found {total} unprocessed games")
 
     for index, game in enumerate(games, start=1):
+        time.sleep(1.5)
         game_data = fetch_game_details(game, index, total)
         if not game_data:
             continue
@@ -178,8 +190,9 @@ if __name__ == "__main__":
         else:
             game_data['positive_reviews'] = 0
             game_data['negative_reviews'] = 0
+            game_data['total_reviews'] = 0
+            game_data['review_score_desc'] = ""
 
-        time.sleep(random.uniform(0.5, 1.5))
         tags = scrape_tags(game['app_id'], game['name'], index, total)
         game_data['tags'] = tags
 

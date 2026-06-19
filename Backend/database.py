@@ -22,8 +22,10 @@ def setup_database():
             release_date      TEXT,
             developer         TEXT,
             publisher         TEXT,
+            review_score_desc TEXT,
             positive_reviews  INTEGER,
-            negative_reviews  INTEGER
+            negative_reviews  INTEGER,
+            total_reviews     INTEGER
         )
     ''')
 
@@ -56,8 +58,11 @@ def migrate_database():
     cursor.execute("ALTER TABLE games ADD COLUMN release_date TEXT")
     cursor.execute("ALTER TABLE games ADD COLUMN developer TEXT")
     cursor.execute("ALTER TABLE games ADD COLUMN publisher TEXT")
+    cursor.execute("ALTER TABLE games ADD COLUMN review_score_desc TEXT;")
     cursor.execute("ALTER TABLE games ADD COLUMN positive_reviews INTEGER")
     cursor.execute("ALTER TABLE games ADD COLUMN negative_reviews INTEGER")
+    cursor.execute("ALTER TABLE games ADD COLUMN total_reviews INTEGER")
+
 
     conn.commit()
     conn.close()
