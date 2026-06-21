@@ -88,6 +88,11 @@ def fetch_game_details(game, current_index, total_games):
         data = app_data['data']
 
         if data.get('release_date', {}).get('coming_soon'):
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE games SET release_date = 'coming_soon' WHERE steam_id = ?", (game['app_id'],))
+            conn.commit()
+            conn.close()
             print(f"[{current_index}/{total_games}] ✗ {game['name']} (coming soon)")
             return None
 
@@ -179,8 +184,8 @@ if __name__ == "__main__":
     print(f"Found {total} unprocessed games")
 
     for index, game in enumerate(games, start=1):
-        time.sleep(1.5)
         game_data = fetch_game_details(game, index, total)
+        time.sleep(1.5)
         if not game_data:
             continue
 
