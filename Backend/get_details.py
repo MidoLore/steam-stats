@@ -178,31 +178,3 @@ def scrape_tags(app_id, game_name, current_index, total_games):
         print(f"[{current_index}/{total_games}] ✗ {game_name} (tag error: {e})")
         return []
 
-if __name__ == "__main__":
-    games = get_unprocessed_games()
-    total = len(games)
-    print(f"Found {total} unprocessed games")
-
-    for index, game in enumerate(games, start=1):
-        game_data = fetch_game_details(game, index, total)
-        time.sleep(1.5)
-        if not game_data:
-            continue
-
-        reviews = fetch_reviews(game['app_id'], game['name'], index, total)
-        if reviews:
-            game_data.update(reviews)
-        else:
-            game_data['positive_reviews'] = 0
-            game_data['negative_reviews'] = 0
-            game_data['total_reviews'] = 0
-            game_data['review_score_desc'] = ""
-
-        tags = scrape_tags(game['app_id'], game['name'], index, total)
-        game_data['tags'] = tags
-
-        save_game(game_data)
-        print(f"[{index}/{total}] ✓ {game['name']} | Tags: {len(tags)} | Reviews: {game_data['positive_reviews']}+")
-
-        if index % SAVE_INTERVAL == 0:
-            print(f"--- Checkpoint: {index}/{total} games processed ---")
