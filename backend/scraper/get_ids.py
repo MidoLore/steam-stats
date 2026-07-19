@@ -1,15 +1,10 @@
 import time
 import requests
-import sqlite3
 from dotenv import load_dotenv
 import os
-
+from ..database import get_db_connection
 load_dotenv()
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
-
-def get_db_connection():
-    conn = sqlite3.connect('../steam.db')
-    return conn
 
 def setup_database():
     conn = get_db_connection()
