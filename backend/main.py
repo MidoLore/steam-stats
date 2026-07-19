@@ -31,7 +31,8 @@ def get_top_tags(limit: int = 20):
     return tags
 
 @app.get("/games/top")
-def get_top_games(limit: int = 50):
+def get_top_games(limit: int = 100, page: int = 1):
+    offset = (page - 1) * limit
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -41,8 +42,8 @@ def get_top_games(limit: int = 50):
         FROM games g
         WHERE g.total_reviews >= 10
         ORDER BY positive_reviews DESC
-        LIMIT ?
-    ''', (limit,))
+        LIMIT ? OFFSET ?
+    ''', (limit, offset))
     games = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return games
