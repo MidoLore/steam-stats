@@ -204,6 +204,44 @@ def scrape_tags(app_id, game_name, current_index, total_games):
         print(f"[{current_index}/{total_games}] ✗ {game_name} (tag error: {e})")
         return []
 
+def get_games_without_tags():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT g.steam_id, g.name FROM games g
+        LEFT JOIN game_tags gt ON g.steam_id = gt.game_id
+        WHERE gt.game_id IS NULL
+        AND g.release_date IS NOT NULL
+    ''')
+    games = [{'app_id': row['steam_id'], 'name': row['name']} for row in cursor.fetchall()]
+    conn.close()
+    return games
+
+def save_tags(app_id, tags):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for tag_name in tags:
+        cursor.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag_name,))
+        cursor.execute("SELECT id FROM tags WHERE name = ?", (tag_name,))
+        tag_id = cursor.fetchone()['id']
+        cursor.execute("INSERT OR IGNORE INTO game_tags (game_id, tag_id) VALUES (?, ?)", (app_id, tag_id))
+    conn.commit()
+    conn.close()
+
+if __name__ == "__main__":
+    games = get_games_without_tags()
+    total = len(games)
+    print(f"Found {total} games without tags")
+
+    for index, game in enumerate(games, start=1):
+        tags = scrape_tags(game['app_id'], game['name'], index, total)
+        if tags:
+            save_tags(game['app_id'], tags)
+            print(f"[{index}/{total}] ✓ {game['name']} | Tags: {len(tags)}")
+        else:
+            print(f"[{index}/{total}] ✗ {game['name']} | Still no tags")
+
+'''
 if __name__ == "__main__":
     games = get_unprocessed_games()
     total = len(games)
@@ -232,3 +270,4 @@ if __name__ == "__main__":
 
         if index % SAVE_INTERVAL == 0:
             print(f"--- Checkpoint: {index}/{total} games processed ---")
+'''
