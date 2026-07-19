@@ -47,7 +47,6 @@ def get_top_games(limit: int = 100, page: int = 1):
     games = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return games
-
 @app.get("/games/by-tags")
 def get_games_by_tags(tags: str, limit: int = 25):
     # tags comes in as comma separated string e.g. "Action,RPG,Indie"
@@ -76,3 +75,36 @@ def get_games_by_tags(tags: str, limit: int = 25):
     games = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return games
+
+@app.get("/games/search")
+def search_games(q: str, limit: int = 25):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT steam_id, name, price, review_score_desc, total_reviews
+        FROM games
+        WHERE name LIKE ?
+        ORDER BY total_reviews DESC
+        LIMIT ?
+    ''', (f'%{q}%', limit))
+    games = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return games
+
+@app.get("/games/{steam_id}")
+def get_game(steam_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM games WHERE steam_id = ?", (steam_id,))
+    row = cursor.fetchone()
+    if not row:
+        return {"error": "Game not found"}
+    game = dict(row)
+    cursor.execute('''
+        SELECT t.name FROM tags t
+        JOIN game_tags gt ON t.id = gt.tag_id
+        WHERE gt.game_id = ?
+    ''', (steam_id,))
+    game['tags'] = [row['name'] for row in cursor.fetchall()]
+    conn.close()
+    return game

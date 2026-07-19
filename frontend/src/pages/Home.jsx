@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { Link } from 'react-router-dom'
 
 function Home() {
     const [games, setGames] = useState([])
@@ -27,7 +28,7 @@ function Home() {
                         <th className='pb-3 w-16'>Image</th>
                         <th className='pb-3'>Name</th>
                         <th className='pb-3'>Review Score</th>
-                        <th className='pb-3'>Reviews</th>
+                        <th className='pb-3'>Positive Reviews</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -41,7 +42,11 @@ function Home() {
                                     className='w-16 h-8 object-cover'
                                 />
                             </td>
-                            <td className='py-3 font-medium pl-3'>{game.name}</td>
+                            <td className='py-3 font-medium pl-3'>
+                                <Link to={`/game/${game.steam_id}`} className='hover:underline'>
+                                    {game.name}
+                                </Link>
+                            </td>
                             <td className='py-3 text-green-400'>{game.review_score_desc}</td>
                             <td className='py-3 text-gray-400'>{game.positive_reviews.toLocaleString()}</td>
                         </tr>
