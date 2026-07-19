@@ -30,6 +30,23 @@ def get_top_tags(limit: int = 20):
     conn.close()
     return tags
 
+@app.get("/games/top")
+def get_top_games(limit: int = 50):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT g.steam_id, g.name, g.price, g.positive_reviews,
+               g.negative_reviews, g.total_reviews, g.review_score_desc,
+               g.release_date, g.developer
+        FROM games g
+        WHERE g.total_reviews >= 10
+        ORDER BY positive_reviews DESC
+        LIMIT ?
+    ''', (limit,))
+    games = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return games
+
 @app.get("/games/by-tags")
 def get_games_by_tags(tags: str, limit: int = 25):
     # tags comes in as comma separated string e.g. "Action,RPG,Indie"
