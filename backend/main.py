@@ -77,16 +77,18 @@ def get_games_by_tags(tags: str, limit: int = 25):
     return games
 
 @app.get("/games/search")
-def search_games(q: str, limit: int = 25):
+def search_games(q: str, limit: int = 1000):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         SELECT steam_id, name, price, review_score_desc, total_reviews
         FROM games
         WHERE name LIKE ?
-        ORDER BY total_reviews DESC
+        ORDER BY
+            CASE WHEN LOWER(name) = LOWER(?) THEN 0 ELSE 1 END,
+            total_reviews DESC
         LIMIT ?
-    ''', (f'%{q}%', limit))
+    ''', (f'%{q}%', q, limit))
     games = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return games
