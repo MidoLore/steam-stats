@@ -3,20 +3,9 @@ import requests
 from dotenv import load_dotenv
 import os
 from ..database import get_db_connection
+
 load_dotenv()
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
-
-def setup_database():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS games (
-            steam_id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
 
 def get_app_list():
     all_apps = []
@@ -63,6 +52,5 @@ def save_app_ids(apps):
 
 
 if __name__ == "__main__":
-    setup_database()
     all_apps = get_app_list()
     save_app_ids(apps=all_apps)

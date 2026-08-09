@@ -1,14 +1,17 @@
 import sqlite3
 from pathlib import Path
 
+# Database path to project root
 DB_PATH = Path(__file__).parent.parent / 'steam.db'
 
 def get_db_connection():
+    """ Return the connection to the Steam database with row factory """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def setup_database():
+    """ Creates the games, tags and game_tags tables if they don't exist """
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -47,26 +50,6 @@ def setup_database():
     conn.commit()
     conn.close()
     print("Database setup complete")
-
-def migrate_database():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("ALTER TABLE games ADD COLUMN short_description TEXT")
-    cursor.execute("ALTER TABLE games ADD COLUMN price REAL")
-    cursor.execute("ALTER TABLE games ADD COLUMN is_free BOOLEAN")
-    cursor.execute("ALTER TABLE games ADD COLUMN release_date TEXT")
-    cursor.execute("ALTER TABLE games ADD COLUMN developer TEXT")
-    cursor.execute("ALTER TABLE games ADD COLUMN publisher TEXT")
-    cursor.execute("ALTER TABLE games ADD COLUMN review_score_desc TEXT;")
-    cursor.execute("ALTER TABLE games ADD COLUMN positive_reviews INTEGER")
-    cursor.execute("ALTER TABLE games ADD COLUMN negative_reviews INTEGER")
-    cursor.execute("ALTER TABLE games ADD COLUMN total_reviews INTEGER")
-
-
-    conn.commit()
-    conn.close()
-    print("Migration complete")
 
 if __name__ == "__main__":
     setup_database()
