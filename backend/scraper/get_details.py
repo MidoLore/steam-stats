@@ -18,10 +18,10 @@ load_dotenv(Path(__file__).parent.parent.parent / '.env')
 
 STORE_URL = "https://store.steampowered.com/api/appdetails"
 REVIEWS_URL = "https://store.steampowered.com/appreviews"
-SAVE_INTERVAL = 50
 
 
 def get_unprocessed_games():
+    """ Finds unprocessed games by checking if release date and total reviews is empty"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT steam_id, name FROM games WHERE total_reviews IS NULL AND release_date IS NULL")
@@ -31,6 +31,7 @@ def get_unprocessed_games():
 
 
 def save_game(game_data):
+    """ Updates a games details and syncs tags"""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -61,6 +62,7 @@ def save_game(game_data):
         game_data['app_id'],
     ))
 
+    # Insert any new tags in the tags table and links games to tags in game_tag table
     for tag_name in game_data['tags']:
         cursor.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag_name,))
         cursor.execute("SELECT id FROM tags WHERE name = ?", (tag_name,))
@@ -71,6 +73,7 @@ def save_game(game_data):
     conn.close()
 
 def parse_date(date_str):
+    """ Parse a Steam date string into 'YYYY-MM-DD' format"""
     if not date_str:
         return None
     formats = [
@@ -88,6 +91,7 @@ def parse_date(date_str):
     return None
 
 def fetch_game_details(game, current_index, total_games):
+    """ Fetches game details from steam api and saves it in a hash map for a single game"""
     params = {
         'appids': game['app_id'],
         'l': 'english',
@@ -95,7 +99,6 @@ def fetch_game_details(game, current_index, total_games):
     }
 
     try:
-        response = requests.get(STORE_URL, params=params, timeout=10)
         response = requests.get(STORE_URL, params=params, timeout=10)
         response.raise_for_status()
 
@@ -149,6 +152,7 @@ def fetch_game_details(game, current_index, total_games):
 
 
 def fetch_reviews(app_id, game_name, current_index, total_games):
+    """ Fetches the games reviews from Steam API and returns the reviews for a single game"""
     try:
         response = requests.get(f"{REVIEWS_URL}/{app_id}", params={
             'json': 1,
@@ -182,9 +186,12 @@ def fetch_reviews(app_id, game_name, current_index, total_games):
 
 
 def scrape_tags(app_id, game_name, current_index, total_games):
+    """ Scrapes game tags from the steam store"""
     clean_name = re.sub(r'[^a-zA-Z0-9_]', '_', game_name)
     url = f"https://store.steampowered.com/app/{app_id}/{clean_name}/"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+
+    # Bypass Steams age verification and mature content warning
     cookies = {
         'birthtime': '0',
         'lastagecheckage': '1-0-1990',
@@ -204,70 +211,31 @@ def scrape_tags(app_id, game_name, current_index, total_games):
         print(f"[{current_index}/{total_games}] ✗ {game_name} (tag error: {e})")
         return []
 
-def get_games_without_tags():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT g.steam_id, g.name FROM games g
-        LEFT JOIN game_tags gt ON g.steam_id = gt.game_id
-        WHERE gt.game_id IS NULL
-        AND g.release_date IS NOT NULL
-    ''')
-    games = [{'app_id': row['steam_id'], 'name': row['name']} for row in cursor.fetchall()]
-    conn.close()
-    return games
-
-def save_tags(app_id, tags):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    for tag_name in tags:
-        cursor.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag_name,))
-        cursor.execute("SELECT id FROM tags WHERE name = ?", (tag_name,))
-        tag_id = cursor.fetchone()['id']
-        cursor.execute("INSERT OR IGNORE INTO game_tags (game_id, tag_id) VALUES (?, ?)", (app_id, tag_id))
-    conn.commit()
-    conn.close()
-
 if __name__ == "__main__":
-    games = get_games_without_tags()
-    total = len(games)
-    print(f"Found {total} games without tags")
+    if __name__ == "__main__":
+        games = get_unprocessed_games()
+        total = len(games)
+        print(f"Found {total} unprocessed games")
 
-    for index, game in enumerate(games, start=1):
-        tags = scrape_tags(game['app_id'], game['name'], index, total)
-        if tags:
-            save_tags(game['app_id'], tags)
-            print(f"[{index}/{total}] ✓ {game['name']} | Tags: {len(tags)}")
-        else:
-            print(f"[{index}/{total}] ✗ {game['name']} | Still no tags")
+        for index, game in enumerate(games, start=1):
+            game_data = fetch_game_details(game, index, total)
+            time.sleep(2.5)
+            if not game_data:
+                continue
 
-'''
-if __name__ == "__main__":
-    games = get_unprocessed_games()
-    total = len(games)
-    print(f"Found {total} unprocessed games")
+            reviews = fetch_reviews(game['app_id'], game['name'], index, total)
+            if reviews:
+                game_data.update(reviews)
+            else:
+                game_data['positive_reviews'] = 0
+                game_data['negative_reviews'] = 0
+                game_data['total_reviews'] = 0
+                game_data['review_score_desc'] = ""
 
-    for index, game in enumerate(games, start=1):
-        game_data = fetch_game_details(game, index, total)
-        time.sleep(2.5)
-        if not game_data:
-            continue
+            tags = scrape_tags(game['app_id'], game['name'], index, total)
+            game_data['tags'] = tags
 
-        reviews = fetch_reviews(game['app_id'], game['name'], index, total)
-        if reviews:
-            game_data.update(reviews)
-        else:
-            game_data['positive_reviews'] = 0
-            game_data['negative_reviews'] = 0
-            game_data['total_reviews'] = 0
-            game_data['review_score_desc'] = ""
+            save_game(game_data)
+            print(f"[{index}/{total}] ✓ {game['name']} | Tags: {len(tags)} | Reviews: {game_data['total_reviews']}+")
 
-        tags = scrape_tags(game['app_id'], game['name'], index, total)
-        game_data['tags'] = tags
 
-        save_game(game_data)
-        print(f"[{index}/{total}] ✓ {game['name']} | Tags: {len(tags)} | Reviews: {game_data['total_reviews']}+")
-
-        if index % SAVE_INTERVAL == 0:
-            print(f"--- Checkpoint: {index}/{total} games processed ---")
-'''
