@@ -3,6 +3,7 @@ import Topbar from './components/Topbar'
 import Home from './pages/Home'
 import GamePage from './pages/GamePage'
 import SearchPage from './pages/SearchPage'
+import TagPage from './pages/TagPage'
 
 function App() {
     return (
@@ -12,6 +13,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/game/:steamId" element={<GamePage />} />
                 <Route path="/search" element={<SearchPage />} />
+                <Route path='/tags' element={<TagPage />} />
             </Routes>
         </BrowserRouter>
     )

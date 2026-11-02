@@ -1,13 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import axios from 'axios'
-
-function scoreColor(desc) {
-    if (!desc) return '#7a7a9a'
-    if (desc.includes('Negative')) return '#ff5f57'
-    if (desc.includes('Mixed')) return '#f59e0b'
-    return '#28c840'
-}
+import { scoreColor } from '../utils/format'
 
 function SearchPage() {
     const [searchParams] = useSearchParams()
@@ -26,25 +20,25 @@ function SearchPage() {
     }, [query])
 
     return (
-        <div className='bg-[#0a0a0f] min-h-screen font-mono text-[#a0a0b8] p-8 md:px-20'>
+        <div className='bg-term-bg min-h-screen font-mono text-term-body p-8 md:px-20'>
             <div className='max-w-6xl mx-auto'>
-                <h1 className='text-[#00d4aa] text-lg font-medium'>SEARCH</h1>
-                <p className='text-[#5a5a7a] text-xs mb-5'>
-                    <span className='text-[#00d4aa]'>$</span> grep "{query}" — {loading ? '...' : `${games.length} matches`}
+                <h1 className='text-term-accent text-lg font-medium'>SEARCH</h1>
+                <p className='text-term-muted text-xs mb-5'>
+                    <span className='text-term-accent'>$</span> grep "{query}" — {loading ? '...' : `${games.length} matches`}
                 </p>
 
                 {loading ? (
-                    <p className='text-[#5a5a7a] text-sm py-8'>
-                        <span className='text-[#00d4aa]'>$</span> searching...
+                    <p className='text-term-muted text-sm py-8'>
+                        <span className='text-term-accent'>$</span> searching...
                     </p>
                 ) : games.length === 0 ? (
-                    <p className='text-[#5a5a7a] text-sm py-8'>
-                        <span className='text-[#ff5f57]'>$</span> no games found for "{query}"
+                    <p className='text-term-muted text-sm py-8'>
+                        <span className='text-term-red'>$</span> no games found for "{query}"
                     </p>
                 ) : (
                     <table className='w-full text-sm'>
                         <thead>
-                            <tr className='text-left text-[#5a5a7a] border-b border-[#1a1a2e]'>
+                            <tr className='text-left text-term-muted border-b border-term-border'>
                                 <th className='pb-2 font-normal text-[10px] uppercase tracking-wide w-16'>Img</th>
                                 <th className='pb-2 font-normal text-[10px] uppercase tracking-wide'>Name</th>
                                 <th className='pb-2 font-normal text-[10px] uppercase tracking-wide'>Score</th>
@@ -53,7 +47,7 @@ function SearchPage() {
                         </thead>
                         <tbody>
                             {games.map(game => (
-                                <tr key={game.steam_id} className='border-b border-[#0f0f1a] hover:bg-[#0f0f1a] transition-colors'>
+                                <tr key={game.steam_id} className='border-b border-term-panel hover:bg-term-panel transition-colors'>
                                     <td className='py-2.5'>
                                         <Link to={`/game/${game.steam_id}`}>
                                             <img
@@ -64,14 +58,14 @@ function SearchPage() {
                                         </Link>
                                     </td>
                                     <td className='py-2.5 pl-3'>
-                                        <Link to={`/game/${game.steam_id}`} className='text-[#e0e0f0] font-sans hover:text-[#00d4aa] transition-colors'>
+                                        <Link to={`/game/${game.steam_id}`} className='text-term-text font-sans hover:text-term-accent transition-colors'>
                                             {game.name}
                                         </Link>
                                     </td>
                                     <td className='py-2.5' style={{ color: scoreColor(game.review_score_desc) }}>
                                         {game.review_score_desc}
                                     </td>
-                                    <td className='py-2.5 text-right text-[#5a5a7a] tabular-nums'>
+                                    <td className='py-2.5 text-right text-term-muted tabular-nums'>
                                         {game.total_reviews?.toLocaleString()}
                                     </td>
                                 </tr>
