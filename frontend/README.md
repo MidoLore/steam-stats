@@ -1,16 +1,54 @@
-# React + Vite
+# SteamStats
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A SteamDB-style analytics tool for exploring 171k+ Steam games: tag trends, tag combination gaps and review rankings.
 
-Currently, two official plugins are available:
+![App Screenshot](docs/screenshot.png)
+![App Screenshot](docs/img.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Top games ranking** with review score, review counts and pagination
+- **Tag deep dive**: pick one or more tags and see total games, first release, peak year, average review score and a releases-per-year chart
+- **Commonly paired with**: see which tags most often appear together with your selection, and add them with one click
+- **Tag discovery**: browse popular tags grouped into categories, get suggestions in the tag search, or hit "surprise me"
+- **Game search** by name and a **game detail page** with tags
+- Games tab for every tag combination, sorted by positive reviews
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech stack
 
-## Expanding the Oxlint configuration
+| Layer    | Tech                          |
+| -------- | ----------------------------- |
+| Frontend | React, React Router, Tailwind CSS, Axios, Vite |
+| Backend  | Python, FastAPI               |
+| Database | SQLite                        |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+
+## API overview
+
+| Endpoint | Description |
+| -------- | ----------- |
+| `GET /games/top` | Top games by positive reviews (paginated) |
+| `GET /games/by-tags?tags=a,b` | Games matching all given tags |
+| `GET /games/search?q=` | Search games by name |
+| `GET /games/{steam_id}` | Game details and tags |
+| `GET /tags/top` | Most used tags |
+| `GET /tags/all` | Every tag with game count |
+| `GET /tags/search?q=` | Tag search |
+| `GET /tags/stats?tags=a,b` | Stats for a tag combination |
+| `GET /tags/timeline?tags=a,b` | Releases per year for a tag combination |
+| `GET /tags/paired?tags=a,b` | Tags that most often co-occur with the selection |
+
+## Database
+
+SQLite with three main tables: `games`, `tags` and `game_tags` (a join table linking `game_id` to `tag_id`).
+
+## Roadmap
+
+- Tag combo gaps: tag pairs with few or no games
+- Hidden gems ranking (high score, few reviews)
+- Compare release trends for two tags
+- Price and release-year filters, sortable columns
+
+## Author
+
+Mohamed Muhuyadin ([@MidoLore](https://github.com/MidoLore))
