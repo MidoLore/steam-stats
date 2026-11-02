@@ -42,13 +42,6 @@ A SteamDB-style analytics tool for exploring 171k+ Steam games: tag trends, tag 
 
 SQLite with three main tables: `games`, `tags` and `game_tags` (a join table linking `game_id` to `tag_id`).
 
-## Roadmap
-
-- Tag combo gaps: tag pairs with few or no games
-- Hidden gems ranking (high score, few reviews)
-- Compare release trends for two tags
-- Price and release-year filters, sortable columns
-
 ## Author
 
 Mohamed Muhuyadin ([@MidoLore](https://github.com/MidoLore))
