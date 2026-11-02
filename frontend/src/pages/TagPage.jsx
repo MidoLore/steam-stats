@@ -388,10 +388,14 @@ function TagSearch({ activeTags, onSelect, onClose }) {
 }
 
 const CATEGORIES = {
-    Genres: ['Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Puzzle', 'Platformer', 'Shooter', 'Horror', 'Racing', 'Sports'],
-    Gameplay: ['Singleplayer', 'Multiplayer', 'Co-op', 'Open World', 'Roguelike', 'Survival', 'Sandbox', 'Turn-Based', 'Difficult'],
-    Mood: ['Atmospheric', 'Relaxing', 'Funny', 'Story Rich', 'Cute', 'Dark', 'Cozy'],
-    Visuals: ['Pixel Graphics', '2D', '3D', 'Anime', 'Retro', 'Cartoony', 'Colorful'],
+    'Top-Level Genres': ['Indie', 'Casual', 'Action', 'Adventure', 'Simulation', 'Strategy', 'RPG', 'Action-Adventure', 'Sports', 'Racing', 'Fighting'],
+    'Genres': ['Puzzle', 'Arcade', 'Shooter', 'Visual Novel', 'Platformer', 'Roguelike', 'Sandbox', 'Turn-Based Strategy', 'Point & Click', 'Card Game', 'Life Sim', 'Tower Defense', 'RTS', 'City Builder', 'Rhythm', 'Board Game'],
+    'Themes & Moods': ['Atmospheric', 'Fantasy', 'Relaxing', 'Funny', 'Horror', 'Sci-fi', 'Family Friendly', 'Retro', 'Dark', 'Mystery', 'Survival', 'Cozy', 'Cyberpunk', 'Medieval'],
+    'Visuals & Viewpoint': ['2D', '3D', 'Colorful', 'Pixel Graphics', 'Cute', 'First-Person', 'Stylized', 'Anime', 'Top-Down', 'Third Person', 'Realistic', 'Hand-drawn', 'Minimalist', 'VR', 'Isometric'],
+    'Features': ['Story Rich', 'Combat', 'Controller', 'Choices Matter', 'PvE', 'PvP', 'Multiple Endings', 'Open World', 'Crafting', 'Procedural Generation', 'Base Building', 'Deckbuilding', 'Stealth', 'Moddable'],
+    'Players': ['Singleplayer', 'Multiplayer', 'Co-op', 'Online Co-Op', 'Local Multiplayer', 'Local Co-Op', 'Massively Multiplayer'],
+    'Scary': ['Horror', 'Psychological Horror', 'Survival Horror', 'Thriller', 'Zombies', 'Gothic', 'Vampires', 'Jump Scare'],
+    'Sports': ['Sports', 'Racing', 'Driving', 'Fishing', 'Football (Soccer)', 'Golf', 'Basketball', 'Skateboarding'],
 }
 
 function BrowseTags({ onSelect }) {
@@ -444,11 +448,57 @@ function BrowseTags({ onSelect }) {
                     </div>
                 )
             })}
-
-            <div className='text-[9px] text-term-accent uppercase tracking-wide mb-2'>// most popular</div>
-            <div className='flex flex-wrap gap-2'>{top.slice(0, 40).map(t => chip(t.name))}</div>
+            <AllTags onSelect={onSelect} />
         </div>
     )
 }
 
+function AllTags({ onSelect }) {
+    const [open, setOpen] = useState(false)
+    const [all, setAll] = useState([])
+    const [filter, setFilter] = useState('')
+
+    useEffect(() => {
+        if (open && all.length === 0) {
+            axios.get('http://localhost:8000/tags/all')
+                .then(res => setAll(res.data))
+                .catch(() => {})
+        }
+    }, [open])
+
+    const visible = all.filter(t => t.name.toLowerCase().includes(filter.toLowerCase()))
+
+    return (
+        <div className='mt-6 pt-4 border-t border-term-border'>
+            <button
+                onClick={() => setOpen(!open)}
+                className='text-xs text-term-muted hover:text-term-accent'
+            >
+                {open ? '[-]' : '[+]'} browse all tags
+            </button>
+
+            {open && (
+                <div className='mt-3'>
+                    <input
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
+                        placeholder='filter tags...'
+                        className='mb-3 w-52 bg-term-bg border border-term-border rounded px-2.5 py-1 text-xs text-term-text outline-none focus:border-[#00d4aa44]'
+                    />
+                    <div className='flex flex-wrap gap-2'>
+                        {visible.map(t => (
+                            <button
+                                key={t.name}
+                                onClick={() => onSelect(t.name)}
+                                className='text-xs px-2.5 py-1 rounded border border-term-border text-term-body hover:border-[#00d4aa44] hover:text-term-accent transition-colors'
+                            >
+                                {t.name} <span className='text-term-dim tabular-nums'>{t.count.toLocaleString()}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
 export default TagPage
