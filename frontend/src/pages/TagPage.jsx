@@ -16,6 +16,7 @@ function TagPage() {
     const limit = 50
     const [paired, setPaired] = useState([])
 
+
     const tags = searchParams.get('tags')
         ? searchParams.get('tags').split(',').map(t => t.trim()).filter(Boolean)
         : []
@@ -265,16 +266,21 @@ function TagPage() {
                                         <table className='w-full text-sm'>
                                             <thead>
                                                 <tr className='text-left text-term-muted border-b border-term-border'>
-                                                    <th className='pb-2 font-normal text-[10px] uppercase tracking-wide w-12'>#</th>
-                                                    <th className='pb-2 font-normal text-[10px] uppercase tracking-wide w-16'>Img</th>
-                                                    <th className='pb-2 font-normal text-[10px] uppercase tracking-wide'>Name</th>
-                                                    <th className='pb-2 font-normal text-[10px] uppercase tracking-wide'>Score</th>
-                                                    <th className='pb-2 font-normal text-[10px] uppercase tracking-wide text-right'>Reviews</th>
+                                                    <th className='pb-2 font-normal text-xs uppercase tracking-wide w-12'>#</th>
+                                                    <th className='pb-2 font-normal text-xs uppercase tracking-wide w-16'>Img</th>
+                                                    <th className='pb-2 font-normal text-xs uppercase tracking-wide'>Name</th>
+                                                    <th className='pb-2 font-normal text-xs uppercase tracking-wide text-right pr-8'>Price</th>
+                                                    <th className='pb-2 font-normal text-xs uppercase tracking-wide'>Rating</th>
+                                                    <th className='pb-2 font-normal text-xs uppercase tracking-wide'>Score</th>
+                                                    <th className='pb-2 font-normal text-xs uppercase tracking-wide text-right'>Reviews</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {games.map((game, index) => {
                                                     const rank = (page - 1) * limit + index + 1
+                                                    const rating = game.total_reviews > 0
+                                                        ? Math.round((game.positive_reviews / game.total_reviews) * 100)
+                                                        : null
                                                     return (
                                                         <tr key={game.steam_id} className='border-b border-term-panel hover:bg-term-panel transition-colors'>
                                                             <td className='py-2.5 text-term-dim'>
@@ -294,6 +300,12 @@ function TagPage() {
                                                                 >
                                                                     {game.name}
                                                                 </Link>
+                                                            </td>
+                                                            <td className='py-2.5 pr-8 text-right text-term-muted tabular-nums'>
+                                                                {game.price > 0 ? `$${game.price.toFixed(2)}` : 'Free'}
+                                                            </td>
+                                                            <td className='py-2.5 tabular-nums' style={{ color: scoreColor(game.review_score_desc) }}>
+                                                                {rating !== null ? `${rating}%` : '—'}
                                                             </td>
                                                             <td className='py-2.5' style={{ color: scoreColor(game.review_score_desc) }}>
                                                                 {game.review_score_desc}

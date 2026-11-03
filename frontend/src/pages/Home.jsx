@@ -3,6 +3,7 @@ import axios from 'axios'
 import { Link } from 'react-router-dom'
 import Pagination from '../components/Pagination'
 import { scoreColor } from '../utils/format'
+import Filters from '../components/Filters'
 
 function Home() {
     const [games, setGames] = useState([])
@@ -10,17 +11,20 @@ function Home() {
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
     const limit = 50
+    const [filters, setFilters] = useState({})
+
 
     useEffect(() => {
         setLoading(true)
-        axios.get(`http://localhost:8000/games/top?page=${page}&limit=${limit}`)
+        const params = new URLSearchParams({ page, limit, ...filters })
+        axios.get(`http://localhost:8000/games/top?${params}`)
             .then(res => {
                 setGames(res.data.games)
                 setTotal(res.data.total)
                 setLoading(false)
             })
             .catch(() => setLoading(false))
-    }, [page])
+    }, [page, filters])
 
     if (loading) return (
         <div className='bg-term-bg min-h-screen font-mono p-8'>
@@ -38,12 +42,25 @@ function Home() {
                     {'// '}ranked by positive reviews — {total.toLocaleString()} games
                 </p>
 
+                <Filters onApply={f => { setFilters(f); setPage(1) }} />
+
+                {loading ? (
+                    <p className='text-term-muted text-sm py-8'>
+                        <span className='text-term-accent'>$</span> loading games...
+                    </p>
+                ) : (
+                    <>
+                    </>
+                )}
+
                 <table className='w-full text-sm'>
                     <thead>
                         <tr className='text-left text-term-muted border-b border-term-border'>
                             <th className='pb-2 font-normal text-xs uppercase tracking-wide w-12'>#</th>
                             <th className='pb-2 font-normal text-xs uppercase tracking-wide w-16'>Img</th>
                             <th className='pb-2 font-normal text-xs uppercase tracking-wide'>Name</th>
+                            <th className='pb-2 font-normal text-xs uppercase tracking-wide text-right pr-8'>Price</th>
+                            <th className='pb-2 font-normal text-xs uppercase tracking-wide'>Rating</th>
                             <th className='pb-2 font-normal text-xs uppercase tracking-wide'>Score</th>
                             <th className='pb-2 font-normal text-xs uppercase tracking-wide text-right'>Reviews</th>
                         </tr>
@@ -51,6 +68,9 @@ function Home() {
                     <tbody>
                         {games.map((game, index) => {
                             const rank = (page - 1) * limit + index + 1
+                            const rating = game.total_reviews > 0
+                                ? Math.round((game.positive_reviews / game.total_reviews) * 100)
+                                : null
                             return (
                                 <tr key={game.steam_id} className='border-b border-term-panel hover:bg-term-panel transition-colors'>
                                     <td className={`py-2.5 ${rank <= 3 ? 'text-term-yellow' : 'text-term-dim'}`}>
@@ -67,6 +87,12 @@ function Home() {
                                         <Link to={`/game/${game.steam_id}`} className='text-term-text font-sans hover:text-term-accent transition-colors'>
                                             {game.name}
                                         </Link>
+                                    </td>
+                                    <td className='py-2.5 pr-8 text-right text-term-muted tabular-nums'>
+                                        {game.price > 0 ? `$${game.price.toFixed(2)}` : 'Free'}
+                                    </td>
+                                    <td className='py-2.5 tabular-nums' style={{ color: scoreColor(game.review_score_desc) }}>
+                                        {rating !== null ? `${rating}%` : '—'}
                                     </td>
                                     <td className='py-2.5' style={{ color: scoreColor(game.review_score_desc) }}>
                                         {game.review_score_desc}

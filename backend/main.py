@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from database import get_db_connection
-
+from typing import Optional
 app = FastAPI()
 
 app.add_middleware(
@@ -30,24 +30,52 @@ def get_top_tags(limit: int = 20):
     conn.close()
     return tags
 
+
+def build_filters(date_from, date_to, min_rating, min_price, max_price, min_reviews, max_reviews):
+    clauses, params = [], []
+    if date_from or date_to:
+        clauses.append("g.release_date != ''")
+    if date_from:
+        clauses.append("g.release_date >= ?"); params.append(date_from)
+    if date_to:
+        clauses.append("g.release_date <= ?"); params.append(date_to)
+    if min_rating is not None:
+        clauses.append("g.total_reviews > 0 AND g.positive_reviews * 100.0 / g.total_reviews >= ?")
+        params.append(min_rating)
+    if min_price is not None:
+        clauses.append("g.price >= ?"); params.append(min_price)
+    if max_price is not None:
+        clauses.append("g.price <= ?"); params.append(max_price)
+    if min_reviews is not None:
+        clauses.append("g.total_reviews >= ?"); params.append(min_reviews)
+    if max_reviews is not None:
+        clauses.append("g.total_reviews <= ?"); params.append(max_reviews)
+    where = ''.join(f' AND {c}' for c in clauses)
+    return where, params
+
 @app.get("/games/top")
-def get_top_games(limit: int = 50, page: int = 1):
+def get_top_games(limit: int = 50, page: int = 1,
+                  date_from: Optional[str] = None, date_to: Optional[str] = None,
+                  min_rating: Optional[float] = None,
+                  min_price: Optional[float] = None, max_price: Optional[float] = None,
+                  min_reviews: Optional[int] = None, max_reviews: Optional[int] = None):
     offset = (page - 1) * limit
+    where, params = build_filters(date_from, date_to, min_rating, min_price, max_price, min_reviews, max_reviews)
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT COUNT(*) FROM games WHERE total_reviews >= 10')
+    cursor.execute(f'SELECT COUNT(*) FROM games g WHERE g.total_reviews >= 10 {where}', params)
     total = cursor.fetchone()[0]
 
-    cursor.execute('''
+    cursor.execute(f'''
         SELECT g.steam_id, g.name, g.price, g.positive_reviews,
                g.negative_reviews, g.total_reviews, g.review_score_desc,
                g.release_date, g.developer
         FROM games g
-        WHERE g.total_reviews >= 10
-        ORDER BY positive_reviews DESC
+        WHERE g.total_reviews >= 10 {where}
+        ORDER BY g.positive_reviews DESC
         LIMIT ? OFFSET ?
-    ''', (limit, offset))
+    ''', (*params, limit, offset))
     games = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return {'games': games, 'total': total, 'page': page, 'limit': limit}
@@ -201,9 +229,9 @@ def get_tag_stats(tags: str):
     cursor.execute(f'''
         SELECT 
             COUNT(*) as total_games,
-            ROUND(AVG(CASE WHEN total_reviews > 0 
+            COALESCE(ROUND(AVG(CASE WHEN total_reviews > 0 
                 THEN positive_reviews * 100.0 / total_reviews 
-                ELSE 0 END)) as avg_positive_pct
+                END)), 0) as avg_positive_pct
         FROM games WHERE steam_id IN ({id_placeholders})
     ''', game_ids)
     stats = dict(cursor.fetchone())
