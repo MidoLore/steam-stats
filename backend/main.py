@@ -80,30 +80,33 @@ def get_top_games(limit: int = 50, page: int = 1,
     conn.close()
     return {'games': games, 'total': total, 'page': page, 'limit': limit}
 @app.get("/games/by-tags")
-def get_games_by_tags(tags: str, limit: int = 50, page: int = 1):
+def get_games_by_tags(tags: str, limit: int = 50, page: int = 1,
+                      date_from: Optional[str] = None, date_to: Optional[str] = None,
+                      min_rating: Optional[float] = None,
+                      min_price: Optional[float] = None, max_price: Optional[float] = None,
+                      min_reviews: Optional[int] = None, max_reviews: Optional[int] = None):
     tag_list = [t.strip() for t in tags.split(',')]
     tag_count = len(tag_list)
     offset = (page - 1) * limit
+    where, fparams = build_filters(date_from, date_to, min_rating, min_price, max_price, min_reviews, max_reviews)
     conn = get_db_connection()
     cursor = conn.cursor()
 
     placeholders = ','.join(['?' for _ in tag_list])
 
-    # Count total matches
     cursor.execute(f'''
         SELECT COUNT(*) FROM (
             SELECT g.steam_id
             FROM games g
             JOIN game_tags gt ON g.steam_id = gt.game_id
             JOIN tags t ON gt.tag_id = t.id
-            WHERE t.name IN ({placeholders})
+            WHERE t.name IN ({placeholders}) {where}
             GROUP BY g.steam_id
             HAVING COUNT(DISTINCT t.name) = ?
         )
-    ''', (*tag_list, tag_count))
+    ''', (*tag_list, *fparams, tag_count))
     total = cursor.fetchone()[0]
 
-    # Get paginated games with their tags
     cursor.execute(f'''
         SELECT g.steam_id, g.name, g.price, g.positive_reviews,
                g.negative_reviews, g.total_reviews, g.review_score_desc,
@@ -114,12 +117,12 @@ def get_games_by_tags(tags: str, limit: int = 50, page: int = 1):
         JOIN tags t ON gt.tag_id = t.id
         LEFT JOIN game_tags gt2 ON g.steam_id = gt2.game_id
         LEFT JOIN tags all_tags ON gt2.tag_id = all_tags.id
-        WHERE t.name IN ({placeholders})
+        WHERE t.name IN ({placeholders}) {where}
         GROUP BY g.steam_id
         HAVING COUNT(DISTINCT t.name) = ?
         ORDER BY g.positive_reviews DESC
         LIMIT ? OFFSET ?
-    ''', (*tag_list, tag_count, limit, offset))
+    ''', (*tag_list, *fparams, tag_count, limit, offset))
 
     games = []
     for row in cursor.fetchall():
