@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import Pagination from '../components/Pagination'
 import { scoreColor } from '../utils/format'
+import Filters from '../components/Filters'
 
 function TagPage() {
     const [searchParams, setSearchParams] = useSearchParams()
@@ -15,6 +16,7 @@ function TagPage() {
     const [total, setTotal] = useState(0)
     const limit = 50
     const [paired, setPaired] = useState([])
+    const [filters, setFilters] = useState({})
 
 
     const tags = searchParams.get('tags')
@@ -33,10 +35,12 @@ function TagPage() {
             return
         }
         setLoading(true)
+
         const tagParam = encodeURIComponent(tags.join(','))
+        const filterParams = new URLSearchParams(filters).toString()
 
         Promise.all([
-            axios.get(`http://localhost:8000/games/by-tags?tags=${tagParam}&page=${page}&limit=${limit}`),
+            axios.get(`http://localhost:8000/games/by-tags?tags=${tagParam}&page=${page}&limit=${limit}&${filterParams}`),
             axios.get(`http://localhost:8000/tags/stats?tags=${tagParam}`),
             axios.get(`http://localhost:8000/tags/timeline?tags=${tagParam}`),
             axios.get(`http://localhost:8000/tags/paired?tags=${tagParam}`).catch(() => ({ data: [] })),
@@ -90,7 +94,7 @@ function TagPage() {
                 <h1 className='text-term-text text-xl font-medium flex items-center gap-3'>
                     {tags.length > 0 ? tags.join(' + ') : 'Tags'}
                     {!loading && stats && (
-                        <span className='text-[10px] px-2 py-1 rounded border border-[#00d4aa44] text-term-accent bg-[#00d4aa11]'>
+                        <span className='text-[10px] px-2 py-1 rounded border border-term-accent-dim text-term-accent bg-[#00d4aa11]'>
                             {stats.total_games?.toLocaleString()} games
                         </span>
                     )}
@@ -102,7 +106,7 @@ function TagPage() {
                 {/* Active tags bar */}
                 <div className='flex flex-wrap gap-2 items-center mb-5'>
                     {tags.map(tag => (
-                        <span key={tag} className='text-xs px-2.5 py-1 rounded border border-[#00d4aa44] text-term-accent bg-[#00d4aa11] flex items-center gap-2'>
+                        <span key={tag} className='text-xs px-2.5 py-1 rounded border border-term-accent-dim text-term-accent bg-[#00d4aa11] flex items-center gap-2'>
                             {tag}
                             <button
                                 onClick={() => removeTag(tag)}
@@ -122,7 +126,7 @@ function TagPage() {
                         ) : (
                             <button
                                 onClick={() => setShowSearch(true)}
-                                className='text-xs px-2.5 py-1 rounded border border-dashed border-term-border text-term-muted hover:border-[#00d4aa44] hover:text-term-accent transition-colors'
+                                className='text-xs px-2.5 py-1 rounded border border-dashed border-term-border text-term-muted hover:border-term-accent-dim hover:text-term-accent transition-colors'
                             >
                                 + add tag
                             </button>
@@ -131,7 +135,7 @@ function TagPage() {
                 </div>
 
                 {/* Content */}
-                {loading ? (
+                {loading && !stats ? (
                     <p className='text-term-muted text-sm py-8'>
                         <span className='text-term-accent'>$</span> searching...
                     </p>
@@ -145,7 +149,7 @@ function TagPage() {
                                 onClick={() => setTab('analytics')}
                                 className={
                                     tab === 'analytics'
-                                        ? 'text-xs px-3.5 py-1.5 rounded border border-[#00d4aa44] text-term-accent bg-[#00d4aa11]'
+                                        ? 'text-xs px-3.5 py-1.5 rounded border border-term-accent-dim text-term-accent bg-[#00d4aa11]'
                                         : 'text-xs px-3.5 py-1.5 rounded border border-transparent text-term-muted hover:text-term-accent transition-colors'
                                 }
                             >
@@ -155,7 +159,7 @@ function TagPage() {
                                 onClick={() => setTab('games')}
                                 className={
                                     tab === 'games'
-                                        ? 'text-xs px-3.5 py-1.5 rounded border border-[#00d4aa44] text-term-accent bg-[#00d4aa11]'
+                                        ? 'text-xs px-3.5 py-1.5 rounded border border-term-accent-dim text-term-accent bg-[#00d4aa11]'
                                         : 'text-xs px-3.5 py-1.5 rounded border border-transparent text-term-muted hover:text-term-accent transition-colors'
                                 }
                             >
@@ -237,7 +241,7 @@ function TagPage() {
                                                             <button
                                                                 key={tag.name}
                                                                 onClick={() => addTag(tag.name)}
-                                                                className='relative text-left text-xs px-2.5 py-1.5 rounded border border-term-border hover:border-[#00d4aa44] overflow-hidden group'
+                                                                className='relative text-left text-xs px-2.5 py-1.5 rounded border border-term-border hover:border-term-accent-dim overflow-hidden group'
                                                             >
                                                                 <div className='absolute inset-y-0 left-0 bg-term-accent opacity-10' style={{ width: `${pct}%` }} />
                                                                 <span className='relative flex justify-between'>
@@ -257,6 +261,10 @@ function TagPage() {
                         {/* Games tab */}
                         {tab === 'games' && (
                             <>
+                                <Filters onApply={f => {
+                                    setFilters(f)
+                                    setSearchParams({ tags: tags.join(','), page: '1' })
+                                }} />
                                 {games.length === 0 ? (
                                     <p className='text-term-muted text-sm py-8'>
                                         <span className='text-term-red'>$</span> no games found
@@ -363,7 +371,7 @@ function TagSearch({ activeTags, onSelect, onClose }) {
 
     return (
         <div>
-            <div className='flex items-center gap-2 bg-term-bg border border-[#00d4aa44] rounded px-2.5 py-1 w-52'>
+            <div className='flex items-center gap-2 bg-term-bg border border-term-accent-dim rounded px-2.5 py-1 w-52'>
                 <span className='text-term-accent text-xs'>$</span>
                 <input
                     type='text'
@@ -376,9 +384,9 @@ function TagSearch({ activeTags, onSelect, onClose }) {
                 />
             </div>
 
-            {results.length > 0 && (
+            {shown.length > 0 && (
                 <div className='absolute top-full mt-1 w-52 bg-term-panel border border-term-border rounded shadow-xl z-50 overflow-hidden'>
-                    {results.map(tag => (
+                    {shown.map(tag => (
                         <button
                             key={tag.name}
                             onMouseDown={() => onSelect(tag.name)}
@@ -425,7 +433,7 @@ function BrowseTags({ onSelect }) {
         <button
             key={name}
             onClick={() => onSelect(name)}
-            className='text-xs px-2.5 py-1 rounded border border-term-border text-term-body hover:border-[#00d4aa44] hover:text-term-accent hover:bg-[#00d4aa11] transition-colors'
+            className='text-xs px-2.5 py-1 rounded border border-term-border text-term-body hover:border-term-accent-dim hover:text-term-accent hover:bg-[#00d4aa11] transition-colors'
         >
             {name} <span className='text-term-dim tabular-nums'>{counts[name]?.toLocaleString()}</span>
         </button>
@@ -444,7 +452,7 @@ function BrowseTags({ onSelect }) {
                 </p>
                 <button
                     onClick={surprise}
-                    className='text-xs px-3 py-1.5 rounded border border-[#00d4aa44] text-term-accent bg-[#00d4aa11] hover:bg-[#00d4aa22]'
+                    className='text-xs px-3 py-1.5 rounded border border-term-accent-dim text-term-accent bg-[#00d4aa11] hover:bg-[#00d4aa22]'
                 >
                     surprise me
                 </button>
@@ -495,14 +503,14 @@ function AllTags({ onSelect }) {
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
                         placeholder='filter tags...'
-                        className='mb-3 w-52 bg-term-bg border border-term-border rounded px-2.5 py-1 text-xs text-term-text outline-none focus:border-[#00d4aa44]'
+                        className='mb-3 w-52 bg-term-bg border border-term-border rounded px-2.5 py-1 text-xs text-term-text outline-none'
                     />
                     <div className='flex flex-wrap gap-2'>
                         {visible.map(t => (
                             <button
                                 key={t.name}
                                 onClick={() => onSelect(t.name)}
-                                className='text-xs px-2.5 py-1 rounded border border-term-border text-term-body hover:border-[#00d4aa44] hover:text-term-accent transition-colors'
+                                className='text-xs px-2.5 py-1 rounded border border-term-border text-term-body hover:border-term-accent-dim hover:text-term-accent transition-colors'
                             >
                                 {t.name} <span className='text-term-dim tabular-nums'>{t.count.toLocaleString()}</span>
                             </button>
